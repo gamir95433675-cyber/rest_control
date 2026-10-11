@@ -1,0 +1,2 @@
+<?php
+require_once 'config.php'; requirePost(); $user=requireRole('expert');$id=postInt('request_id');$st=$pdo->prepare("UPDATE rest_requests SET status='cancelled',completed_at=NOW() WHERE id=? AND expert_username=? AND status='pending'");$st->execute([$id,$user['username']]);if($st->rowCount()!==1)jsonResponse(['success'=>false,'message'=>'درخواست قابل لغو نیست.'],409);jsonResponse(['success'=>true]);

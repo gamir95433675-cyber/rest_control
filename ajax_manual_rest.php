@@ -1,0 +1,6 @@
+<?php
+require_once 'config.php'; requirePost(); $user=requirePermission('can_manual_rest');$expert=trim((string)($_POST['expert']??''));$duration=clampDuration(postInt('duration',10));if($expert==='')jsonResponse(['success'=>false,'message'=>'کارشناس را انتخاب کنید.'],400);
+$st=$pdo->prepare("SELECT username,supervisor_username FROM experts WHERE username=? LIMIT 1");$st->execute([$expert]);$e=$st->fetch();if(!$e)jsonResponse(['success'=>false,'message'=>'کارشناس پیدا نشد.'],404);
+$st=$pdo->prepare("SELECT id FROM rest_requests WHERE expert_username=? AND status IN ('pending','approved') LIMIT 1");$st->execute([$expert]);if($st->fetch())jsonResponse(['success'=>false,'message'=>'این کارشناس درخواست/استراحت فعال دارد.'],409);
+$st=$pdo->prepare("INSERT INTO rest_requests(expert_username,supervisor_username,status,request_type,reason,requested_at,approved_at,duration_minutes,created_at) VALUES(?,?, 'approved','normal','استراحت ارسال‌شده توسط سرپرست',NOW(),NOW(),?,NOW())");$st->execute([$expert,$e['supervisor_username'],$duration]);
+$st=$pdo->prepare("UPDATE experts SET rest_login_count=CASE WHEN last_rest_login_date=CURDATE() THEN rest_login_count+1 ELSE 1 END,last_rest_login_date=CURDATE() WHERE username=?");$st->execute([$expert]);jsonResponse(['success'=>true,'id'=>(int)$pdo->lastInsertId(),'message'=>'استراحت برای کارشناس فعال شد.']);

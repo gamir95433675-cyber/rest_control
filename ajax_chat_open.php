@@ -1,0 +1,7 @@
+<?php
+require_once 'config.php';requirePost();$user=requireLogin();if($user['role']==='supervisor'&&!hasPermission('can_chat'))jsonResponse(['success'=>false,'message'=>'دسترسی چت غیرفعال است.'],403);
+$conv=postInt('conversation_id');
+if($conv<1){$target=trim((string)($_POST['username']??''));$role=trim((string)($_POST['role']??''));if($target===''||!in_array($role,['admin','supervisor','expert'],true))jsonResponse(['success'=>false,'message'=>'مخاطب انتخاب نشده است.'],400);$found=null;foreach(allChatUsers($pdo,$user) as $c)if($c['username']===$target&&$c['role']===$role){$found=$c;break;}if(!$found)jsonResponse(['success'=>false,'message'=>'مخاطب مجاز نیست.'],403);$conv=ensureDirectConversation($pdo,$user['username'],$user['display_name'],$user['role'],$found['username'],$found['display_name'],$found['role']);}
+else if(!canAccessChatConversation($pdo,$conv,$user['role'],$user['username']))jsonResponse(['success'=>false,'message'=>'دسترسی به این گفتگو ندارید.'],403);
+$st=$pdo->prepare("SELECT id,sender_username,sender_role,sender_name,body,created_at FROM chat_messages WHERE conversation_id=? ORDER BY id DESC LIMIT 150");$st->execute([$conv]);$msgs=array_reverse($st->fetchAll());
+$st=$pdo->prepare("SELECT id,type,title,created_by,created_by_role FROM chat_conversations WHERE id=?");$st->execute([$conv]);$c=$st->fetch();jsonResponse(['success'=>true,'conversation_id'=>$conv,'conversation'=>$c,'messages'=>$msgs]);

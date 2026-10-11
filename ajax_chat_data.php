@@ -1,0 +1,5 @@
+<?php
+require_once 'config.php';requirePost();$user=requireLogin();if($user['role']==='supervisor'&&!hasPermission('can_chat'))jsonResponse(['success'=>false,'message'=>'دسترسی چت برای شما غیرفعال است.'],403);
+$st=$pdo->prepare("SELECT c.id,c.type,c.title,c.created_at,c.created_by,c.created_by_role,MAX(m.id) last_id,MAX(m.created_at) last_at FROM chat_conversations c JOIN chat_members me ON me.conversation_id=c.id AND me.username=? AND me.role=? LEFT JOIN chat_messages m ON m.conversation_id=c.id GROUP BY c.id ORDER BY COALESCE(MAX(m.id),0) DESC,c.id DESC");$st->execute([$user['username'],$user['role']]);$convs=$st->fetchAll();
+foreach($convs as &$c){$c['id']=(int)$c['id'];if($c['type']==='direct'){$x=$pdo->prepare("SELECT username,role,display_name FROM chat_members WHERE conversation_id=? AND NOT(username=? AND role=?) LIMIT 1");$x->execute([$c['id'],$user['username'],$user['role']]);$o=$x->fetch();$c['title']=$o['display_name']??'گفت‌وگوی خصوصی';$c['other_username']=$o['username']??'';$c['other_role']=$o['role']??'';}}
+unset($c);jsonResponse(['success'=>true,'conversations'=>$convs,'contacts'=>allChatUsers($pdo,$user)]);

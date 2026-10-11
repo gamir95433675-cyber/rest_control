@@ -1,0 +1,2 @@
+<?php
+require_once 'config.php';requirePost();$user=requireLogin();$conv=postInt('conversation_id');$after=postInt('after_id');if($conv<1||!canAccessChatConversation($pdo,$conv,$user['role'],$user['username']))jsonResponse(['success'=>false,'message'=>'دسترسی غیرمجاز.'],403);$st=$pdo->prepare("SELECT id,sender_username,sender_role,sender_name,body,created_at FROM chat_messages WHERE conversation_id=? AND id>? ORDER BY id ASC LIMIT 100");$st->execute([$conv,$after]);jsonResponse(['success'=>true,'messages'=>$st->fetchAll()]);
